@@ -1,0 +1,28 @@
+#!/bin/sh
+
+case "$ACTION" in
+remove)
+	case "$INTERFACE" in
+	pppoe-*)
+		/lib/ranga/run-hooks "disconn"
+		;;
+	esac
+	;;
+move)
+	case "$INTERFACE" in
+	pppoe-*)
+		/lib/ranga/run-hooks "conn"
+		;;
+	esac
+	;;
+add)
+	case "$INTERFACE" in
+	br-lan)
+		/lib/ranga/run-hooks "lanbr"
+		;;
+	esac
+	;;
+esac
+
+exit 0
+

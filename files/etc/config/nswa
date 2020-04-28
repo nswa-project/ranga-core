@@ -1,0 +1,15 @@
+
+config menu 'flags'
+	option enable_captive_portal '1'
+	option enable_cron_autostart '0'
+	option enable_early_dial '1'
+	option permit_anonymous_dial '1'
+	option enable_forever_nkserver '0'
+	option allow_ipv6_inbound '0'
+	
+config menu 'misc'
+	option ttl_increase_number '0'
+	option rvlan '0'
+	option autoppp 'hangup'
+	option aria2_rpc_secret '123456'
+

@@ -1,0 +1,10 @@
+#!/bin/sh
+
+. /etc/ranga/pub.sh
+
+[ `id -u` = '1000' ] || exit 1
+
+export RANGA_CRON_ARGS="$3"
+exec /extensions/ranga.ext.base/extloader.lua "/extensions/${1}/cron/${2}.lua"
+
+exit 0

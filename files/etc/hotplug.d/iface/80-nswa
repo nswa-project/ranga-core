@@ -1,0 +1,11 @@
+#!/bin/sh
+
+case "$ACTION" in
+ifup)
+	case "$INTERFACE" in
+	wan)
+		/lib/ranga/run-hooks "wanup"
+		;;
+	esac
+	;;
+esac
