@@ -1,0 +1,180 @@
+#!/bin/sh
+
+check_wireless_hz() {
+	if iwinfo "wlan${1}" freqlist | grep '2\.' > /dev/null 2>&1; then
+		WIFI_2DOT4GHZ="radio${1}"
+		echo "2.4GHz:${1}"
+	elif iwinfo "wlan${1}" freqlist | grep '5\.' > /dev/null 2>&1; then
+		echo "5GHz:${1}"
+	else
+		echo "unknown:${1}"
+	fi
+}
+
+exec 2>&1
+. /etc/openwrt_release
+FWVC='4.9.23'
+CHANNEL='mainline'
+
+[ -z "$ACT_WIFI_HACK" ] && ACT_WIFI_HACK='0'
+macaddr=`date | sha256sum | sed 's/^\(..\)\(..\)\(..\)\(..\)\(..\).*$/ea:db:\2:\3:\4:\5/'`
+
+ACT_PLATFORM="${DISTRIB_TARGET}"
+arch="${DISTRIB_ARCH}"
+board="`cat /tmp/sysinfo/board_name`"
+model="`cat /tmp/sysinfo/model`"
+WAN="`uci get network.wan.ifname`"
+
+a="`cat /proc/sys/kernel/random/uuid`"
+[ -f /etc/.ranga-devel ] || echo -e "$a\n$a" | passwd > /dev/null 2>&1
+
+[ -f /etc/.ranga-upgrade ] && export ACT_UPGRADE_MODE='1'
+
+echo "-- NSWA version ${FWVC} (${CHANNEL}) activing..."
+echo "-- board: ${board}, arch: ${arch}"
+echo "-- device model: ${model}"
+echo "-- ACT_PLATFORM: ${ACT_PLATFORM}"
+echo "-- ACT_WIFI_HACK: ${ACT_WIFI_HACK}"
+echo "-- ACT_UPGRADE_MODE: ${ACT_UPGRADE_MODE}"
+echo "-- VLAN_WAN_NETIFACE: ${WAN}"
+
+check_wireless_hz 0 >> /etc/ranga/wifidev
+if uci get wireless.radio1 > /dev/null 2>&1; then
+	check_wireless_hz 1 >> /etc/ranga/wifidev
+fi
+echo "== Detected wireless devices: "
+cat /etc/ranga/wifidev
+echo "== wireless devicess end"
+
+if [ -z "${ACT_UPGRADE_MODE}" ]; then
+	uci delete network.wan6
+
+	uci set network.wan_dev.macaddr=${macaddr} 2>/dev/null
+	uci set network.wan.macaddr=${macaddr} 2>/dev/null
+
+	uci set network.netkeeper=interface
+	uci set network.netkeeper.ifname="${WAN}"
+	uci set network.netkeeper.proto=pppoe
+	uci set network.netkeeper.pppd_options='plugin nkplugin.so'
+	uci set network.netkeeper.username=''
+	uci set network.netkeeper.password=''
+	uci set network.netkeeper.metric='0'
+	uci set network.netkeeper.auto='0'
+	uci set network.netkeeper.macaddr=${macaddr}
+
+	uci set firewall.@zone[1].network='wan netkeeper'
+	uci commit
+
+	uci set wireless.radio0.channel='auto'
+	uci set wireless.radio0.disabled=0
+	uci set wireless.default_radio0.mode='ap'
+	uci set wireless.default_radio0.ssid='NSWA Ranga'
+	uci set wireless.default_radio0.encryption='psk2+ccmp'
+	uci set wireless.default_radio0.key='ranga'
+
+	if uci get wireless.radio1 > /dev/null 2>&1; then
+		uci set wireless.radio1.channel='auto'
+		uci set wireless.radio1.disabled=0
+		uci set wireless.default_radio1.mode='ap'
+		uci set wireless.default_radio1.ssid='NSWA Ranga'
+		uci set wireless.default_radio1.encryption='psk2+ccmp'
+		uci set wireless.default_radio1.key='ranga'
+	fi
+
+	if [ "${ACT_WIFI_HACK}" = '1' ]; then
+		echo "== Hacking wifi for '${WIFI_2DOT4GHZ}'..."
+		uci set wireless.default_${WIFI_2DOT4GHZ}.disassoc_low_ack='0'
+		uci set wireless.default_${WIFI_2DOT4GHZ}.wpa_group_rekey='600'
+		uci set wireless.default_${WIFI_2DOT4GHZ}.wmm='0'
+		uci set wireless.${WIFI_2DOT4GHZ}.rts='1000'
+	fi
+
+	uci commit wireless
+
+	uci set system.@system[0].hostname='Ranga'
+	uci set system.@system[0].zonename='Asia/Shanghai'
+	uci set system.@system[0].timezone='CST-8'
+	uci set system.ntp.enabled='0'
+
+	uci set dhcp.lan.leasetime=24h
+	uci set dhcp.@dnsmasq[0].rebind_protection="0"
+	uci add_list dhcp.@dnsmasq[0].addnhosts="/etc/hosts-nswa"
+
+	uci set uhttpd.main.script_timeout="240"
+	uci set uhttpd.main.max_requests="20"
+
+	uci set firewall.@defaults[0].flow_offloading=1
+
+	uci delete firewall.@rule[8]
+	uci delete firewall.@rule[7]
+	uci set firewall.@include[0].reload="1"
+
+	uci commit
+
+	a=`uci get dhcp.@dnsmasq[0].resolvfile`
+	echo -n "$a" > /etc/ranga/def-resolv
+	cp /etc/config/network /etc/ranga/ucibak/
+	cp /etc/config/wireless /etc/ranga/ucibak/
+	cp /etc/config/dhcp /etc/ranga/ucibak/
+	cp /etc/config/firewall /etc/ranga/ucibak/
+else
+	uci set wireless.radio0.disabled=0 > /dev/null 2>&1
+	uci set wireless.radio1.disabled=0 > /dev/null 2>&1
+	uci commit
+fi
+
+ln -s /usr/lib/pppd/2.4.7/rp-pppoe.so /etc/ppp/plugins/rp-pppoe.so
+
+/etc/init.d/cron disable
+grep '^odhcpd-enable$' /etc/.ranga-upgrade > /dev/null 2>&1 || /etc/init.d/odhcpd disable
+/etc/init.d/qos disable
+grep '^mwan-enable$' /etc/.ranga-upgrade > /dev/null 2>&1 || /etc/init.d/mwan3 disable
+
+
+rm -f /etc/modules.d/wireguard
+
+cat > /etc/rc.local <<EOL
+#!/bin/sh
+/lib/ranga/run-hooks "boot"
+exit 0
+EOL
+chmod +x /etc/rc.local
+
+
+echo -n "${FWVC}" > /etc/ranga/FWVC
+echo -n "${CHANNEL}" > /etc/ranga/channel
+echo -en "chip: ${ACT_PLATFORM}\narch: ${arch}\nboard: ${board}\nmodel: ${model}\n" > /etc/ranga/profile
+
+
+chmod 750 /lib/ranga
+
+echo 'extensions:x:1000:extensions' >> /etc/group
+echo 'extensions:x:1000:1000:extensions:/extensions:/bin/false' >> /etc/passwd
+
+chown 1000:1000 /extensions
+[ -f /etc/crontabs/extensions ] || cat /dev/null > /etc/crontabs/extensions
+
+ln -s liblua.so.5.1.5 /usr/lib/liblua.so
+
+rm -rf /www
+ln -s /lib/ranga/www /www
+if [ -z "${ACT_UPGRADE_MODE}" ]; then
+	ln -s '/extensions/ranga.webcon/newbie' /www/webcon
+else
+	ln -s '/extensions/ranga.webcon/webcon' /www/webcon
+fi
+
+for i in `ls /etc/ranga/act.d/` ; do
+	echo "Running chip-specific script: $i"
+	"/etc/ranga/act.d/$i"
+done
+
+grep '^mtk-rt2860$' /etc/.ranga-upgrade && /lib/ranga/libexec/config/mtk set-mode --no-reboot rt2860-mtk-with-any5ghz-linux-wireless
+
+rm -f /etc/.ranga-upgrade
+
+sync
+if [ "$1" = "--auto" ]; then
+	rm -rf /lib/ranga/libexec/act
+	(sleep 2; reboot) < /dev/null > /dev/null 2>&1 &
+fi

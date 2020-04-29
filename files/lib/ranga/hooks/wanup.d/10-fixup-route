@@ -1,0 +1,4 @@
+#!/bin/sh
+
+logger -t wanup-hook "try to fixup route"
+route add default pppoe-netkeeper

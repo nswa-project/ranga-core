@@ -1,0 +1,17 @@
+#!/bin/sh
+
+if [ -f "/tmp/secboot" ]; then
+	logger -t nswa-hook "secboot blocks extension hooks"
+	exit 0
+fi
+
+[ "$1" = "boot" -a `uci get nswa.flags.enable_cron_autostart` = '1' ] && /etc/init.d/cron start
+
+export NSWA_HOOK="$1"
+
+for ext in `cat /tmp/ranga-ext-hook` ; do
+	file="/extensions/${ext}/ranga-hook.lua"
+	[ -f "$file" ] && ${NSWA_PREFIX}/libexec/su 1000 /extensions/ranga.ext.base/extloader.lua "$file"
+done
+
+exit 0

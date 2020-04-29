@@ -1,0 +1,24 @@
+#!/bin/sh
+
+. /etc/ranga/pub.sh
+
+exec 1000>/tmp/nswa-hook.lock
+
+logger -t nswa-hook-before-lock "Waiting for lock ($1)"
+flock 1000
+if [ "$?" != "0" ]; then
+	logger -t nswa "Error when run hooks: lock error ($1)"
+	exit 1
+fi
+
+logger -t nswa-hook "Running ($1)"
+
+hooks_path="${NSWA_PREFIX}/hooks/${1}.d"
+
+for cmd in `ls "${hooks_path}"` ; do
+	"${hooks_path}/$cmd" "$2" > /dev/null 2>&1 < /dev/null 1000>&-
+done
+
+logger -t nswa-hook "Ended ($1)"
+
+exit 0

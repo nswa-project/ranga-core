@@ -1,0 +1,22 @@
+#!/bin/sh
+
+exec 1000>/tmp/nswa-net.lock
+
+logger -t ranga-scdial "waiting for lock ($2)"
+flock 1000
+if [ "$?" != "0" ]; then
+	logger -t ranga-scdial "lock error ($2)"
+	exit 1
+fi
+
+username="$1"
+interface="$2"
+
+username="`echo "$username" | sed 's/\^M/\r/g'`"
+
+ifdown "$interface" 1000>&-
+echo -n "$username" > /tmp/nk-override
+ifup "$interface" 1000>&-
+logger -t ranga-scdial "'${interface}' dial with username '${username}'"
+
+exit 0
