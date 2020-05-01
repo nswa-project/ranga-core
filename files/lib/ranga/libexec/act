@@ -158,11 +158,7 @@ ln -s liblua.so.5.1.5 /usr/lib/liblua.so
 
 rm -rf /www
 ln -s /lib/ranga/www /www
-if [ -z "${ACT_UPGRADE_MODE}" ]; then
-	ln -s '/extensions/ranga.webcon/newbie' /www/webcon
-else
-	ln -s '/extensions/ranga.webcon/webcon' /www/webcon
-fi
+ln -s '/extensions/ranga.webcon/webcon' /www/webcon
 
 for i in `ls /etc/ranga/act.d/` ; do
 	echo "Running chip-specific script: $i"
