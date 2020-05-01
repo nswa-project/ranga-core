@@ -36,7 +36,6 @@ define Package/ranga/install
 	cp -r ./cgi/files/* $(1)/
 	cp -r ./misc/files/* $(1)/
 	mkdir -p ../../files
-	cp -r ./files-override/* ../../files
 	$(MAKE) -C $(PKG_BUILD_DIR)/src INSTALL_DIR="$(INSTALL_DIR)" INSTALL_BIN="$(INSTALL_BIN)" PREFIX="$(1)" install
 endef
 
