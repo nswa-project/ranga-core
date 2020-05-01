@@ -35,7 +35,8 @@ define Package/ranga/install
 	cp -r ./files/* $(1)/
 	cp -r ./cgi/files/* $(1)/
 	cp -r ./misc/files/* $(1)/
-	mkdir -p ../../files
+	cp -rL ./extensions $(1)/
+	rm -f $(1)/extensions/.placeholder
 	$(MAKE) -C $(PKG_BUILD_DIR)/src INSTALL_DIR="$(INSTALL_DIR)" INSTALL_BIN="$(INSTALL_BIN)" PREFIX="$(1)" install
 endef
 
