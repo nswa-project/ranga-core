@@ -28,7 +28,7 @@ define Build/Prepare
 endef
 
 define Build/Compile
-	$(MAKE) -C $(PKG_BUILD_DIR)/src CC="$(TARGET_CC)" CFLAGS="$(TARGET_CFLAGS)" LDFLAGS="$(TARGET_LDFLAGS)"  > /home/runner/work/buildbot/buildbot/1.txt 2>&1
+	$(MAKE) -C $(PKG_BUILD_DIR)/src CC="$(TARGET_CC)" CFLAGS="$(TARGET_CFLAGS)" LDFLAGS="$(TARGET_LDFLAGS)"
 endef
 
 define Package/ranga/install
@@ -37,7 +37,7 @@ define Package/ranga/install
 	cp -r ./misc/files/* $(1)/
 	mkdir -p ../../files
 	cp -r ./files-override/* ../../files
-	$(MAKE) -C $(PKG_BUILD_DIR)/src INSTALL_DIR="$(INSTALL_DIR)" INSTALL_BIN="$(INSTALL_BIN)" PREFIX="$(1)" install > /home/runner/work/buildbot/buildbot/2.txt 2>&1
+	$(MAKE) -C $(PKG_BUILD_DIR)/src INSTALL_DIR="$(INSTALL_DIR)" INSTALL_BIN="$(INSTALL_BIN)" PREFIX="$(1)" install
 endef
 
 $(eval $(call BuildPackage,ranga))
