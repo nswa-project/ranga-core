@@ -25,9 +25,6 @@ board="`cat /tmp/sysinfo/board_name`"
 model="`cat /tmp/sysinfo/model`"
 WAN="`uci get network.wan.ifname`"
 
-a="`cat /proc/sys/kernel/random/uuid`"
-[ -f /etc/.ranga-devel ] || echo -e "$a\n$a" | passwd > /dev/null 2>&1
-
 [ -f /etc/.ranga-upgrade ] && export ACT_UPGRADE_MODE='1'
 
 echo "-- NSWA version ${FWVC} (${CHANNEL}) activing..."
