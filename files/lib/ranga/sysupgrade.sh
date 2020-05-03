@@ -14,7 +14,8 @@ reboot="$1"
 
 _info "Unpacking firmware..."
 rm -rf /tmp/nswafw/
-tar xzf /tmp/nswa-patch.tar.gz nswafw -C /tmp > /dev/null
+tar xzf /tmp/nswa-patch.tar.gz ./nswafw -C /tmp > /dev/null
+rm /tmp/nswa-patch.tar.gz
 
 [ -d "/tmp/nswafw" ] || errquit "firmware invalid"
 
